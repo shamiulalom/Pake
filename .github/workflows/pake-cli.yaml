@@ -51,7 +51,7 @@ on:
       targets:
         description: "Package formats (comma-separated: deb,appimage,rpm)"
         required: false
-        default: "deb"
+        default: "exe"
 
 jobs:
   build:
@@ -222,7 +222,8 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: ${{ inputs.name }}-Windows-Portable
-          path: "**/src-tauri/target/release/bundle/exe/${{ inputs.name }}.exe"
+          # ✨ FIX: The wildcard matches whatever casing or hyphenation Tauri forced on your app name
+          path: "**/src-tauri/target/release/bundle/**/*.exe"
           retention-days: 3
 
       - name: Rust cache store
