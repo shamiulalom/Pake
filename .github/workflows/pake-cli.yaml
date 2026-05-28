@@ -20,7 +20,7 @@ on:
         description: "Website URL"
         required: true
       name:
-        description: "App name. (lowercase for Linux)"
+        description: "App name (Lowercase for Linux)"
         required: true
       icon:
         description: "Icon URL, auto-fetch if empty"
@@ -51,7 +51,7 @@ on:
       targets:
         description: "Package formats (comma-separated: deb,appimage,rpm)"
         required: false
-        default: "exe"
+        default: "deb"
 
 jobs:
   build:
@@ -64,7 +64,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          fetch-depth: 1 # Fetches current log snapshot for confirmation tracking
+          fetch-depth: 1
+
+      # 🕒 Start tracking total run time
+      - name: Start Build Timer
+        id: timer
+        shell: bash
+        run: echo "start_time=$(date +%s)" >> $GITHUB_OUTPUT
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -176,7 +182,7 @@ jobs:
             $args += "--hide-title-bar"
           }
 
-          # Force Pake compilation directly into a single standalone portable execution file (.exe)
+          # Target execution context so Pake creates an EXE
           $args += "--targets", "exe"
 
           Write-Host "Running: node dist/cli.js $($args -join ' ')"
@@ -210,13 +216,13 @@ jobs:
           retention-days: 3
           if-no-files-found: ignore
 
-      # Re-engineered to capture the standalone compilation target binary (.exe) instead of an MSI package
+      # ✨ FIX: Deep recursive search tracking pattern ensures your EXE file is cleanly caught
       - name: Upload Portable EXE (Windows)
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v6
         with:
           name: ${{ inputs.name }}-Windows-Portable
-          path: "${{ inputs.name }}.exe"
+          path: "**/src-tauri/target/release/bundle/exe/${{ inputs.name }}.exe"
           retention-days: 3
 
       - name: Rust cache store
@@ -230,3 +236,27 @@ jobs:
             ~/.cargo/git/db/
             src-tauri/target/
           key: ${{ runner.os }}-cargo-pake-${{ hashFiles('**/Cargo.lock') }}
+
+      # 📊 Calculate execution metrics and format download links directly onto the summary board
+      - name: Generate Build Summary Dashboard
+        if: always()
+        shell: bash
+        run: |
+          END_TIME=$(date +%s)
+          START_TIME=${{ steps.timer.outputs.start_time }}
+          TOTAL_SECONDS=$((END_TIME - START_TIME))
+          MINUTES=$((TOTAL_SECONDS / 60))
+          SECONDS=$((TOTAL_SECONDS % 60))
+          
+          echo "### 🚀 Pake Application Compilation Complete! ###" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value Details |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Target App Name** | \`${{ inputs.name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Target Architecture Platform** | \`${{ inputs.platform }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Total Build Duration Time** | ${MINUTES}m ${SECONDS}s |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "### 📥 Download Link Location" >> $GITHUB_STEP_SUMMARY
+          echo "Your binary is ready! Scroll down to the very bottom of this screen to the **Artifacts** section to download **\`${{ inputs.name }}-Windows-Portable\`**." >> $GITHUB_STEP_SUMMARY
+          echo "Direct Action Execution URL: \`${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\`" >> $GITHUB_STEP_SUMMARY
