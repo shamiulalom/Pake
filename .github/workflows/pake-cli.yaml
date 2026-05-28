@@ -158,6 +158,9 @@ jobs:
             $args += "--hide-title-bar"
           }
 
+          # Crucial Injection: Adds target execution context so Pake creates an EXE
+          $args += "--targets", "exe"
+
           Write-Host "Running: node dist/cli.js $($args -join ' ')"
           node dist/cli.js $args
 
@@ -189,12 +192,13 @@ jobs:
           retention-days: 3
           if-no-files-found: ignore
 
-      - name: Upload MSI (Windows)
+      # Updated this step from upload MSI to upload the Portable EXE
+      - name: Upload Portable EXE (Windows)
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v6
         with:
-          name: ${{ inputs.name }}-Windows
-          path: ${{ inputs.name }}.msi
+          name: ${{ inputs.name }}-Windows-Portable
+          path: "${{ inputs.name }}.exe"
           retention-days: 3
 
       - name: Rust cache store
