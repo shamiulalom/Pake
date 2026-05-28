@@ -10,7 +10,7 @@ on:
       platform:
         description: "Platform"
         required: true
-        default: "macos-latest"
+        default: "windows-latest"
         type: choice
         options:
           - "windows-latest"
@@ -63,6 +63,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 1 # Fetches current log snapshot for confirmation tracking
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -98,6 +100,14 @@ jobs:
         timeout-minutes: 25
         shell: bash
         run: |
+          # 🔍 IDENTIFY CURRENT COMMIT CHANGES
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          echo "===================================================="
+          echo "🚀 RUNNING WORKFLOW FOR COMMIT: [$COMMIT_HASH]"
+          echo "📝 COMMIT MESSAGE: $COMMIT_MSG"
+          echo "===================================================="
+
           ARGS=("${{ inputs.url }}" "--name" "${{ inputs.name }}")
 
           if [ -n "${{ inputs.icon }}" ]; then
@@ -136,6 +146,14 @@ jobs:
         timeout-minutes: 25
         shell: pwsh
         run: |
+          # 🔍 IDENTIFY CURRENT COMMIT CHANGES
+          $commitMsg = git log -1 --pretty=%B
+          $commitHash = git rev-parse --short HEAD
+          Write-Host "====================================================" -ForegroundColor Green
+          Write-Host "🚀 RUNNING WORKFLOW FOR COMMIT: [$commitHash]" -ForegroundColor Green
+          Write-Host "📝 COMMIT MESSAGE: $commitMsg" -ForegroundColor Green
+          Write-Host "====================================================" -ForegroundColor Green
+
           $args = "${{ inputs.url }}", "--name", "${{ inputs.name }}"
 
           if ("${{ inputs.icon }}" -ne "") {
@@ -158,7 +176,7 @@ jobs:
             $args += "--hide-title-bar"
           }
 
-          # Crucial Injection: Adds target execution context so Pake creates an EXE
+          # Force Pake compilation directly into a single standalone portable execution file (.exe)
           $args += "--targets", "exe"
 
           Write-Host "Running: node dist/cli.js $($args -join ' ')"
@@ -192,7 +210,7 @@ jobs:
           retention-days: 3
           if-no-files-found: ignore
 
-      # Updated this step from upload MSI to upload the Portable EXE
+      # Re-engineered to capture the standalone compilation target binary (.exe) instead of an MSI package
       - name: Upload Portable EXE (Windows)
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v6
