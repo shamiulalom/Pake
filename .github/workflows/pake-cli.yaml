@@ -20,7 +20,7 @@ on:
         description: "Website URL"
         required: true
       name:
-        description: "App name (lowercase for Linux)"
+        description: "App name. (lowercase for Linux)"
         required: true
       icon:
         description: "Icon URL, auto-fetch if empty"
@@ -51,7 +51,7 @@ on:
       targets:
         description: "Package formats (comma-separated: deb,appimage,rpm)"
         required: false
-        default: "deb"
+        default: "exe"
 
 jobs:
   build:
